@@ -1,0 +1,23 @@
+{
+  "name": "0g-compute-cli",
+  "version": "1.0.0",
+  "description": "CLI tool for interacting with the 0G Compute Network",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "cli": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "@0glabs/0g-serving-broker": "^0.1.2",
+    "ethers": "^6.11.1",
+    "openai": "^4.28.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.19",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+} 
