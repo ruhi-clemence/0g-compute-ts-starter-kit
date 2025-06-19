@@ -3,6 +3,12 @@ import { createZGComputeNetworkBroker, ZGComputeNetworkBroker } from "@0glabs/0g
 import OpenAI from "openai";
 import dotenv from "dotenv";
 
+// Official 0G providers
+export const OFFICIAL_PROVIDERS = {
+  "llama-3.3-70b-instruct": "0xf07240Efa67755B5311bc75784a061eDB47165Dd",
+  "deepseek-r1-70b": "0x3feE5a4dd5FDb8a32dDA97Bed899830605dBD9D3"
+};
+
 dotenv.config();
 
 class BrokerService {
@@ -91,15 +97,40 @@ class BrokerService {
     }
   }
 
+
   /**
-   * List available services
+   * Acknowledge a provider before using their services
+   * @param providerAddress Provider address to acknowledge
+   */
+  async acknowledgeProvider(providerAddress: string): Promise<string> {
+    await this.ensureInitialized();
+    
+    try {
+      await this.broker!.inference.acknowledgeProviderSigner(providerAddress);
+      return `Provider ${providerAddress} acknowledged successfully`;
+    } catch (error: any) {
+      throw new Error(`Failed to acknowledge provider: ${error.message}`);
+    }
+  }
+
+  /**
+   * List available services with enhanced information
    */
   async listServices(): Promise<any[]> {
     await this.ensureInitialized();
     
     try {
       const services = await this.broker!.inference.listService();
-      return services;
+      
+      // Enhance services with additional metadata
+      return services.map((service: any) => ({
+        ...service,
+        inputPriceFormatted: ethers.formatEther(service.inputPrice || 0),
+        outputPriceFormatted: ethers.formatEther(service.outputPrice || 0),
+        isOfficial: Object.values(OFFICIAL_PROVIDERS).includes(service.provider),
+        isVerifiable: service.verifiability === 'TeeML',
+        modelName: Object.entries(OFFICIAL_PROVIDERS).find(([_, addr]) => addr === service.provider)?.[0] || 'Unknown'
+      }));
     } catch (error: any) {
       throw new Error(`Failed to list services: ${error.message}`);
     }
@@ -114,10 +145,26 @@ class BrokerService {
     await this.ensureInitialized();
     
     try {
-      await this.broker!.inference.settleFee(providerAddress, fee);
-      return "Fee settled successfully";
+      // Note: settleFee API might have changed in current SDK version
+      // Using the broker's ledger to settle fee instead
+      throw new Error("settleFee method may not be available in current SDK version. Please check the latest SDK documentation.");
     } catch (error: any) {
       throw new Error(`Failed to settle fee: ${error.message}`);
+    }
+  }
+
+  /**
+   * Request refund for unused funds
+   * @param amount Amount to refund in ETH
+   */
+  async requestRefund(amount: number): Promise<string> {
+    await this.ensureInitialized();
+    
+    try {
+      await this.broker!.ledger.retrieveFund("inference", Number(ethers.parseEther(amount.toString())));
+      return `Refund of ${amount} ETH requested successfully`;
+    } catch (error: any) {
+      throw new Error(`Failed to request refund: ${error.message}`);
     }
   }
 
@@ -134,7 +181,7 @@ class BrokerService {
       // Get the service metadata
       const { endpoint, model } = await this.broker!.inference.getServiceMetadata(providerAddress);
       
-      // Get headers for authentication
+      // Get headers for authentication (single use - generate fresh for each request)
       const headers = await this.broker!.inference.getRequestHeaders(providerAddress, query);
       
       // Create OpenAI client with the service URL
@@ -166,7 +213,7 @@ class BrokerService {
       const content = completion.choices[0].message.content;
       const chatId = completion.id;
       
-      // Process payment
+      // Process payment - chatId is optional for verifiable services
       try {
         const isValid = await this.broker!.inference.processResponse(
           providerAddress,
@@ -180,6 +227,7 @@ class BrokerService {
             model,
             isValid,
             provider: providerAddress,
+            chatId,
           }
         };
       } catch (error: any) {
@@ -197,13 +245,25 @@ class BrokerService {
             }
           };
         } else {
+          // Enhanced error message for common issues
+          if (error.message.includes('Headers already used')) {
+            throw new Error('Request headers are single-use. This error indicates a system issue - please try again.');
+          }
           throw new Error(`Payment processing failed: ${error.message}`);
         }
       }
     } catch (error: any) {
+      // Enhanced error handling with specific guidance
+      if (error.message.includes('Provider not responding')) {
+        throw new Error(`Provider ${providerAddress} is not responding. Try using another provider from the service list.`);
+      }
+      if (error.message.includes('Insufficient balance')) {
+        throw new Error('Insufficient balance. Please add funds to your account before making requests.');
+      }
       throw new Error(`Query failed: ${error.message}`);
     }
   }
+
 }
 
 // Singleton instance

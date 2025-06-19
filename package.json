@@ -8,11 +8,14 @@
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "serve": "ts-node src/index.ts",
-    "watch": "nodemon --exec ts-node src/index.ts"
+    "watch": "nodemon --exec ts-node src/index.ts",
+    "demo": "ts-node demo-compute-flow.ts"
   },
   "dependencies": {
-    "@0glabs/0g-serving-broker": "^0.1.2",
+    "@0glabs/0g-serving-broker": "^0.2.10",
+    "@types/crypto-js": "^4.2.2",
     "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
     "dotenv": "^16.4.5",
     "ethers": "^6.11.1",
     "express": "^4.18.2",

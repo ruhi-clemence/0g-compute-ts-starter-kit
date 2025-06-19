@@ -133,4 +133,65 @@ export const getAccountInfo = async (req: Request, res: Response) => {
       error: error.message
     });
   }
+};
+
+
+/**
+ * @swagger
+ * /account/refund:
+ *   post:
+ *     summary: Request refund for unused funds
+ *     tags: [Account]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 description: Amount to refund in ETH
+ *     responses:
+ *       200:
+ *         description: Refund requested successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid request
+ *       500:
+ *         description: Server error
+ */
+export const requestRefund = async (req: Request, res: Response) => {
+  try {
+    const { amount } = req.body;
+    
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid amount required'
+      });
+    }
+    
+    const result = await brokerService.requestRefund(Number(amount));
+    
+    return res.status(200).json({
+      success: true,
+      message: result
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 }; 

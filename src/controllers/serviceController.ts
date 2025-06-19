@@ -176,6 +176,7 @@ export const sendQuery = async (req: Request, res: Response) => {
   }
 }; 
 
+
 /**
  * @swagger
  * /services/settle-fee:
@@ -235,6 +236,66 @@ export const settleFee = async (req: Request, res: Response) => {
     }
     
     const result = await brokerService.settleFee(providerAddress, Number(fee));
+    
+    return res.status(200).json({
+      success: true,
+      message: result
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @swagger
+ * /services/acknowledge-provider:
+ *   post:
+ *     summary: Acknowledge a provider before using their services
+ *     tags: [Services]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - providerAddress
+ *             properties:
+ *               providerAddress:
+ *                 type: string
+ *                 description: Provider address to acknowledge
+ *     responses:
+ *       200:
+ *         description: Provider acknowledged successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid request
+ *       500:
+ *         description: Server error
+ */
+export const acknowledgeProvider = async (req: Request, res: Response) => {
+  try {
+    const { providerAddress } = req.body;
+    
+    if (!providerAddress) {
+      return res.status(400).json({
+        success: false,
+        error: 'Provider address is required'
+      });
+    }
+    
+    const result = await brokerService.acknowledgeProvider(providerAddress);
     
     return res.status(200).json({
       success: true,

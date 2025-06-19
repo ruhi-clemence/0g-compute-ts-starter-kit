@@ -7,5 +7,6 @@ const router = express.Router();
 router.get('/list', serviceController.listServices);
 router.post('/query', serviceController.sendQuery);
 router.post('/settle-fee', serviceController.settleFee);
+router.post('/acknowledge-provider', serviceController.acknowledgeProvider);
 
 export default router; 
